@@ -24,6 +24,55 @@ DWORD getParentProcess();
 bool callbackExample(ULONG64* param1, ULONG64* param2, ULONG64 allocationPtr, ULONG64 allocationSize);
 bool CheckWindowsKernelPrefs();
 
+bool SetRegistryValue(LPCSTR subKey, LPCSTR valueName, DWORD data)
+{
+	HKEY hKey;
+	if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, subKey, 0, KEY_SET_VALUE, &hKey) == ERROR_SUCCESS)
+	{
+		LSTATUS status = RegSetValueExA(hKey, valueName, 0, REG_DWORD, (const BYTE*)&data, sizeof(data));
+		RegCloseKey(hKey);
+		return status == ERROR_SUCCESS;
+	}
+	return false;
+}
+
+void StopServiceByName(LPCSTR serviceName)
+{
+	SC_HANDLE hSCManager = OpenSCManagerA(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+	if (hSCManager)
+	{
+		SC_HANDLE hService = OpenServiceA(hSCManager, serviceName, SERVICE_STOP | SERVICE_QUERY_STATUS);
+		if (hService)
+		{
+			SERVICE_STATUS status;
+			ControlService(hService, SERVICE_CONTROL_STOP, &status);
+			CloseServiceHandle(hService);
+		}
+		CloseServiceHandle(hSCManager);
+	}
+}
+
+void RunHiddenCommand(LPCSTR cmd)
+{
+	STARTUPINFOA si;
+	PROCESS_INFORMATION pi;
+	ZeroMemory(&si, sizeof(si));
+	si.cb = sizeof(si);
+	si.dwFlags = STARTF_USESHOWWINDOW;
+	si.wShowWindow = SW_HIDE;
+	ZeroMemory(&pi, sizeof(pi));
+
+	char cmdLine[256];
+	strcpy_s(cmdLine, cmd);
+
+	if (CreateProcessA(NULL, cmdLine, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
+	{
+		WaitForSingleObject(pi.hProcess, INFINITE);
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+	}
+}
+
 
 int wmain(const int argc, wchar_t** argv)
 {
@@ -63,30 +112,36 @@ int wmain(const int argc, wchar_t** argv)
 
 #ifndef _DEBUG
 	int tryCount = 0;
-CHECK_VER://CHECK_VER
-	Log::Info("Checking mapper version...");
-	try
+	bool versionChecked = false;
+	while (!versionChecked)
 	{
-		bool result = CheckCheatVersion();
-		Log::PreviousLine();
-		if (result)
-			Log::Fine("Your mapper version is up to date and supported");
-		else
-			Log::Error("Your mapper version is out of support");
-	}
-	catch (const std::exception& error)
-	{
-		Log::PreviousLine();
-		std::string errorMsg = error.what();
-		if (errorMsg.find("bad internet connection") != std::string::npos && tryCount < 3)
+		Log::Info("Checking mapper version...");
+		try
 		{
-			Log::Error(errorMsg, false);
-			Log::Info("Reconnecting...");
-			tryCount++;
-			goto CHECK_VER;//CHECK_VER
+			bool result = CheckCheatVersion();
+			Log::PreviousLine();
+			if (result)
+				Log::Fine("Your mapper version is up to date and supported");
+			else
+				Log::Error("Your mapper version is out of support");
+			versionChecked = true;
 		}
-		else
-			Log::Error(errorMsg);
+		catch (const std::exception& error)
+		{
+			Log::PreviousLine();
+			std::string errorMsg = error.what();
+			if (errorMsg.find("bad internet connection") != std::string::npos && tryCount < 3)
+			{
+				Log::Error(errorMsg, false);
+				Log::Info("Reconnecting...");
+				tryCount++;
+			}
+			else
+			{
+				Log::Error(errorMsg);
+				versionChecked = true;
+			}
+		}
 	}
 #endif
 
@@ -104,14 +159,15 @@ CHECK_VER://CHECK_VER
 		} while (response != "y" && response != "n");
 		if (response == "y")
 		{
-			system("reg add \"HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity\" /v Enabled /t REG_DWORD /d 0 /f >nul 2>&1");
-			system("reg add \"HKLM\SYSTEM\CurrentControlSet\Control\Lsa\" /v RunAsPPL /t REG_DWORD /d 0 /f >nul 2>&1");
-			system("reg add \"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\DeviceGuard\" /v EnableVirtualizationBasedSecurity /t REG_DWORD /d 00000000 /f >nul 2>&1");
-			system("bcdedit /set hypervisorlaunchtype off >nul 2>&1");
-			system("reg add \"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\CI\Config\" /v VulnerableDriverBlocklistEnable /t REG_DWORD /d 00000000 /f >nul 2>&1");
-			system("sc stop faceit >nul 2>&1");
-			system("sc stop vgc >nul 2>&1");
-			system("sc stop vgk >nul 2>&1");
+			SetRegistryValue("SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity", "Enabled", 0);
+			SetRegistryValue("SYSTEM\\CurrentControlSet\\Control\\Lsa", "RunAsPPL", 0);
+			SetRegistryValue("System\\CurrentControlSet\\Control\\DeviceGuard", "EnableVirtualizationBasedSecurity", 0);
+			SetRegistryValue("SYSTEM\\CurrentControlSet\\Control\\CI\\Config", "VulnerableDriverBlocklistEnable", 0);
+			RunHiddenCommand("bcdedit /set hypervisorlaunchtype off");
+			
+			StopServiceByName("faceit");
+			StopServiceByName("vgc");
+			StopServiceByName("vgk");
 
 			Log::Fine("Recomended preferences applied, pls restart your pc");
 			Log::Info("Ignore usermode-part mapper error, just reboot pc and run again");
@@ -121,9 +177,9 @@ CHECK_VER://CHECK_VER
 		else
 			Log::Warning("Recomended preferences won't be applied may lead to unexpected behavior.");
 	}
-	system("sc stop faceit >nul 2>&1");
-	system("sc stop vgc >nul 2>&1");
-	system("sc stop vgk >nul 2>&1");
+	StopServiceByName("faceit");
+	StopServiceByName("vgc");
+	StopServiceByName("vgk");
 
 
 	BYTE* img = nullptr;

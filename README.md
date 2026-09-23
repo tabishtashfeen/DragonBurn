@@ -22,7 +22,7 @@ DragonBurn is one of the best CS2 kernel mode read only external cheats. It has 
 
 <h3>
 <p align="center">
-PROJECT IS CURRENTLY UNDER ACTIVE IMPROVEMENTS/PARTIAL REWORK AND NOT JET WORKS THE WAY IT IS, THE ONLY WAY TO USE THIS PROJECT, IS TO USE COMMUNITY BUILDS LISTED IN DISCORD!!!
+DEVELOPMENT BRANCH: This version of the project is currently undergoing active improvements and partial reworks. It may be unstable. For a stable experience, please use the community builds provided in our Discord channel.
 </p></h3>
 
 <p align="center">
@@ -135,6 +135,14 @@ Press END key to open/close menu.
 
 ---
 
+### 🛠️Prerequisites
+
+- Windows 10 (20H2+) or Windows 11
+- Visual Studio 2022 (if compiling from source)
+- Secure Boot disabled (required for kernel driver mapping)
+
+---
+
 ### 🛠️How to use
 
 At the beginning, download latest release or compile project by yourself. You need only 2 files `DragonBurn.exe` and `DragonBurn-kernel.exe`.
@@ -146,19 +154,23 @@ Once downloaded, run `DragonBurn-kernel.exe` to map the driver. If u see `[+] su
 
 ---
 
-### ❌Errors
+### ❌Troubleshooting
 
-<img src="imgs/error_1.png" width="400" height="90">
+<details>
+<summary><b>Windows Defender / Antivirus Flags</b></summary>
+<br>
 
 > Error: `Windows Defender, other antivirus programs, or anti-cheats may flag cheat as virus`
 >
 > Solution: Turn off real-time protection
 
----
+</details>
 
-### ❌Mapper errors
+<details>
+<summary><b>Mapper Errors</b></summary>
+<br>
 
-cmd should be opened as admin
+Make sure to run the mapper as administrator.
 
 > Error: `[x] Kernel-mode driver image is empty`
 >
@@ -178,29 +190,26 @@ cmd should be opened as admin
 >
 > Faceit: `sc stop faceit`
 > Vanguard: `sc stop vgc` `sc stop vgk`
-
-<!--
-> Error: `Driver is mapped successfully but failed to connect to kernel`
->
-> Solution: Reboot pc and manually run mapper with `--legacymethod`
--->
+</details>
 
 > [!TIP]
-> These cmds should fix any issues (after executing restart pc):
+> These cmds should fix any mapping issues (after executing restart pc). The mapper will also prompt you to apply these automatically.
 >
 > ```
-> reg add \"HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity\" /v Enabled /t REG_DWORD /d 0 /f
+> reg add "HKLM\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" /v Enabled /t REG_DWORD /d 0 /f
 >
-> reg add \"HKLM\SYSTEM\CurrentControlSet\Control\Lsa\" /v RunAsPPL /t REG_DWORD /d 0 /f
+> reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RunAsPPL /t REG_DWORD /d 0 /f
 >
-> reg add \"HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\DeviceGuard\" /v EnableVirtualizationBasedSecurity /t REG_DWORD /d 00000000 /f
+> reg add "HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\DeviceGuard" /v EnableVirtualizationBasedSecurity /t REG_DWORD /d 00000000 /f
 >
 > bcdedit /set hypervisorlaunchtype off
 >
-> reg add \"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\CI\Config\" /v VulnerableDriverBlocklistEnable /t REG_DWORD /d 00000000 /f
+> reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\CI\Config" /v VulnerableDriverBlocklistEnable /t REG_DWORD /d 00000000 /f
 > ```
 
 ---
+
+
 
 ### 🖼️Preview
 

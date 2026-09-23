@@ -1,4 +1,4 @@
-﻿//______                            ______                  
+//______                            ______                  
 //|  _  \                           | ___ \                 
 //| | | |_ __ __ _  __ _  ___  _ __ | |_/ /_   _ _ __ _ __  
 //| | | | '__/ _` |/ _` |/ _ \| '_ \| ___ \ | | | '__| '_ \ 
@@ -21,10 +21,8 @@
 #include <KnownFolders.h>
 #include <ShlObj.h>
 
-using namespace std;
-
-namespace fs = filesystem;
-string fileName;
+namespace fs = std::filesystem;
+std::string fileName;
 bool secureMode, legacyImg, forceprefs;
 
 void Cheat();
@@ -117,78 +115,94 @@ void Cheat()
 
 #ifndef DBDEBUG
 	tryCount = 0;
-CHECK_VER://CHECK_VER
-	Log::Info("Checking cheat version...");
-	try 
+	bool versionChecked = false;
+	while (!versionChecked)
 	{
-		bool result = Init::Verify::CheckCheatVersion();
-		Log::PreviousLine();
-		if (result)
-			Log::Fine("Your cheat version is up to date and supported");
-		else
-			Log::Error("Your cheat version is out of support");
-	}
-	catch (const std::exception& error)
-	{
-		Log::PreviousLine();
-		std::string errorMsg = error.what();
-		if (errorMsg.find("bad internet connection") != std::string::npos && tryCount < 3)
+		Log::Info("Checking cheat version...");
+		try 
 		{
-			Log::Error(errorMsg, false, false);
-			Log::Info("Reconnecting...");
-			tryCount++;
-			goto CHECK_VER;//CHECK_VER
+			bool result = Init::Verify::CheckCheatVersion();
+			Log::PreviousLine();
+			if (result)
+				Log::Fine("Your cheat version is up to date and supported");
+			else
+				Log::Error("Your cheat version is out of support");
+			versionChecked = true;
 		}
-		else
-			Log::Error(errorMsg);
+		catch (const std::exception& error)
+		{
+			Log::PreviousLine();
+			std::string errorMsg = error.what();
+			if (errorMsg.find("bad internet connection") != std::string::npos && tryCount < 3)
+			{
+				Log::Error(errorMsg, false, false);
+				Log::Info("Reconnecting...");
+				tryCount++;
+			}
+			else
+			{
+				Log::Error(errorMsg);
+				versionChecked = true;
+			}
+		}
 	}
 #endif
 
 	bool mapped = false;
-CONNECT_KERNEL://CONNECT_KERNEL
-	Log::Info("Connecting to kernel mode driver...");
-	if (memoryManager.ConnectDriver(L"\\\\.\\DragonBurn-kmd"))
+	bool connected = false;
+	while (!connected)
 	{
-		Log::PreviousLine();
-		Log::Fine("Successfully connected to kernel mode driver");
-	}
-	else
-	{
-		Log::PreviousLine();
-		if (!mapped)
-			Log::Warning("Failed to connect to kernel mode driver");
-		else
-			Log::Error("Failed to connect to kernel mode driver");
-		
-		Log::Info("Triggered auto-map protocol");
-		Log::Info("Looking for kernel mapper...");
-
-		if (fs::exists("DragonBurn-kernel.exe"))
+		Log::Info("Connecting to kernel mode driver...");
+		if (memoryManager.ConnectDriver(L"\\\\.\\DragonBurn-kmd"))
 		{
 			Log::PreviousLine();
-			std::string mapperInfo = "Executing kernel mapper, flags: "
-				+ std::string(secureMode ? "--securemode" : "")
-				+ std::string(legacyImg ? "--legacyimg" : "")
-				+ std::string(forceprefs ? "--forceprefs" : "")
-				+ std::string("...");
-			Log::Info(mapperInfo);
-			int result = Init::Verify::ExecuteMapper(secureMode, legacyImg, forceprefs);
-
-			Log::PreviousLine();
-			if (result == 0)
-			{
-				Log::Fine("Successfully mapped kernel mode driver");
-				mapped = true;
-				goto CONNECT_KERNEL;//CONNECT_KERNEL
-			}
-			else
-				Log::Error("Failed to map kernel mode driver");
+			Log::Fine("Successfully connected to kernel mode driver");
+			connected = true;
 		}
 		else
 		{
 			Log::PreviousLine();
-			Log::Warning("It might have been deleted by AV, turn off AV and clean temp");
-			Log::Error("Failed to find kernel mapper");
+			if (!mapped)
+				Log::Warning("Failed to connect to kernel mode driver");
+			else
+			{
+				Log::Error("Failed to connect to kernel mode driver");
+				break;
+			}
+			
+			Log::Info("Triggered auto-map protocol");
+			Log::Info("Looking for kernel mapper...");
+
+			if (fs::exists("DragonBurn-kernel.exe"))
+			{
+				Log::PreviousLine();
+				std::string mapperInfo = "Executing kernel mapper, flags: "
+					+ std::string(secureMode ? "--securemode" : "")
+					+ std::string(legacyImg ? "--legacyimg" : "")
+					+ std::string(forceprefs ? "--forceprefs" : "")
+					+ std::string("...");
+				Log::Info(mapperInfo);
+				int result = Init::Verify::ExecuteMapper(secureMode, legacyImg, forceprefs);
+
+				Log::PreviousLine();
+				if (result == 0)
+				{
+					Log::Fine("Successfully mapped kernel mode driver");
+					mapped = true;
+				}
+				else
+				{
+					Log::Error("Failed to map kernel mode driver");
+					break;
+				}
+			}
+			else
+			{
+				Log::PreviousLine();
+				Log::Warning("It might have been deleted by AV, turn off AV and clean temp");
+				Log::Error("Failed to find kernel mapper");
+				break;
+			}
 		}
 	}
 
@@ -211,27 +225,33 @@ CONNECT_KERNEL://CONNECT_KERNEL
 	Log::Fine("Connected to CS2");
 
 	tryCount = 0;
-UPDATE_OFFSETS://UPDATE_OFFSETS
-	Log::Info("Updating offsets...");
-	try
+	bool offsetsUpdated = false;
+	while (!offsetsUpdated)
 	{
-		Offset.UpdateOffsets();
-		Log::PreviousLine();
-		Log::Fine("Offsets updated");
-	}
-	catch (const std::exception& error)
-	{
-		Log::PreviousLine();
-		std::string errorMsg = error.what();
-		if (errorMsg.find("bad internet connection") != std::string::npos && tryCount < 3)
+		Log::Info("Updating offsets...");
+		try
 		{
-			Log::Error(errorMsg, false, false);
-			Log::Info("Reconnecting...");
-			tryCount++;
-			goto UPDATE_OFFSETS;//UPDATE_OFFSETS
+			Offset.UpdateOffsets();
+			Log::PreviousLine();
+			Log::Fine("Offsets updated");
+			offsetsUpdated = true;
 		}
-		else
-			Log::Error(errorMsg);
+		catch (const std::exception& error)
+		{
+			Log::PreviousLine();
+			std::string errorMsg = error.what();
+			if (errorMsg.find("bad internet connection") != std::string::npos && tryCount < 3)
+			{
+				Log::Error(errorMsg, false, false);
+				Log::Info("Reconnecting...");
+				tryCount++;
+			}
+			else
+			{
+				Log::Error(errorMsg);
+				offsetsUpdated = true;
+			}
+		}
 	}
 
 	bool inited = false;
