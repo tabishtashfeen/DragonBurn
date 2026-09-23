@@ -91,12 +91,19 @@ namespace OSImGui
             float T_Animation = ImSaturate(g.LastActiveIdTimer / AnimationSpeed);
             t = *v ? (T_Animation) : (1.0f - T_Animation);
         }
-        // Hovered Color
-        ImU32 Color;
-        Color = ImGui::GetColorU32(ImLerp(ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered), ImGui::GetStyleColorVec4(ImGuiCol_CheckMark),t));
+        // Track color: lerp from frame bg to semi-transparent accent
+        ImVec4 accentOn = ImGui::GetStyleColorVec4(ImGuiCol_CheckMark);
+        ImVec4 trackOff = ImGui::GetStyleColorVec4(ImGuiCol_FrameBg);
+        ImVec4 trackOn  = ImVec4(accentOn.x, accentOn.y, accentOn.z, 0.40f);
+        ImU32 TrackColor;
+        TrackColor = ImGui::GetColorU32(ImLerp(trackOff, trackOn, t));
+        // Knob color: lerp from muted to bright accent
+        ImVec4 knobOff = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+        ImU32 KnobColor;
+        KnobColor = ImGui::GetColorU32(ImLerp(knobOff, accentOn, t));
         // Rendering
-        DrawList->AddRectFilled(ImVec2(p.x, p.y + Height * 0.30f), ImVec2(p.x + Width, p.y + Height * 0.70f), ImColor(ImGui::GetStyleColorVec4(ImGuiCol_Border)), Height);
-        DrawList->AddCircleFilled(ImVec2(p.x + Radius + t * (Width - Radius * 2), p.y + Radius + 9.5), Radius, Color, 360);
+        DrawList->AddRectFilled(ImVec2(p.x, p.y + Height * 0.30f), ImVec2(p.x + Width, p.y + Height * 0.70f), TrackColor, Height);
+        DrawList->AddCircleFilled(ImVec2(p.x + Radius + t * (Width - Radius * 2), p.y + Radius + 9.5), Radius, KnobColor, 360);
     }
 
     void OSImGui::MyProgressBar(float fraction, const ImVec2& Size, const char* overlay, ImVec4 Color)

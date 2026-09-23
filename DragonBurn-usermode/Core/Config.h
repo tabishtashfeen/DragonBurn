@@ -192,4 +192,7 @@ namespace MiscCFG
     inline float AutoZeusDistance = 130.0f;
 
     inline bool AntiAFKKick = false;
+
+    // 0: Neon Blue, 1: Crimson Red, 2: Electric Purple, 3: Emerald Green, 4: Amber Orange
+    inline int ThemeIndex = 0;
 }

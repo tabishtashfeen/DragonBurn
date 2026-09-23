@@ -1549,8 +1549,8 @@ void ImGui::GradientText(const char* text)
     // Increase font scale
     ImFont* font = ImGui::GetFont();
     float oldScale = font->Scale;
-    font->Scale = 1.25f; // Increase by 15%
-    ImGui::PushFont(font);  // Ensure scaled font is applied
+    font->Scale = 1.25f;
+    ImGui::PushFont(font);
 
     ImVec2 textSize = ImGui::CalcTextSize(text);
     float width = 180.0f;
@@ -1558,8 +1558,9 @@ void ImGui::GradientText(const char* text)
 
     ImVec2 cursorPos = ImGui::GetCursorScreenPos();
 
-    // Get the color of TextDisabled and create transparent version
-    ImVec4 color = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+    // Use accent color (CheckMark) for gradient
+    ImVec4 color = ImGui::GetStyleColorVec4(ImGuiCol_CheckMark);
+    color.w = 0.25f; // Semi-transparent accent
     ImU32 colorOpaque = ImGui::ColorConvertFloat4ToU32(color);
     ImVec4 colorTransparent = color;
     colorTransparent.w = 0.0f;
@@ -1570,17 +1571,17 @@ void ImGui::GradientText(const char* text)
     ImVec2 p3 = ImVec2(cursorPos.x, cursorPos.y + 3.5f);
     ImVec2 p2 = ImVec2(p1.x + width, p1.y + height);
 
-    // Draw background gradient
+    // Draw background gradient with accent
     drawList->AddRectFilledMultiColor(
         p1, p2,
-        colorOpaque, // top-left
-        colorTrans,  // top-right
-        colorTrans,  // bottom-right
-        colorOpaque  // bottom-left
+        colorOpaque,
+        colorTrans,
+        colorTrans,
+        colorOpaque
     );
 
-    // Set text color and render
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_ChildBg));
+    // Bright text on top of gradient
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.90f, 0.93f, 0.98f, 1.00f));
     ImGui::SetCursorScreenPos(p3);
     ImGui::TextUnformatted(text);
     ImGui::PopStyleColor();

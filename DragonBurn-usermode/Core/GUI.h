@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "..\Core\Config.h"
 #include "..\Core\Render.h"
 #include "..\Features\Aimbot.h"
@@ -15,25 +15,13 @@
 #include "../Features/ESP.h"
 
 ID3D11ShaderResourceView* Logo = NULL;
-ID3D11ShaderResourceView* MenuButton1 = NULL;
-ID3D11ShaderResourceView* MenuButton2 = NULL;
-ID3D11ShaderResourceView* MenuButton3 = NULL;
-ID3D11ShaderResourceView* MenuButton4 = NULL;
-ID3D11ShaderResourceView* MenuButton1Pressed = NULL;
-ID3D11ShaderResourceView* MenuButton2Pressed = NULL;
-ID3D11ShaderResourceView* MenuButton3Pressed = NULL;
-ID3D11ShaderResourceView* MenuButton4Pressed = NULL;
 ID3D11ShaderResourceView* HitboxImage = NULL;
 
-bool Button1Pressed = true;
-bool Button2Pressed = false;
-bool Button3Pressed = false;
-bool Button4Pressed = false;
+int selectedTab = 0; // 0=Aimbot, 1=Visual, 2=Misc, 3=Config
 
 int LogoW = 0, LogoH = 0;
-int buttonW = 0;
-int buttonH = 0;
 int hitboxW = 0, hitboxH = 0;
+
 
 // checkbox for hitbox
 bool checkbox1 = true;
@@ -50,6 +38,7 @@ namespace GUI
 			return;
 
 		MyConfigSaver::LoadConfig("default.cfg");
+		ImGui::DragonBurnApplyTheme(MiscCFG::ThemeIndex);
 
 		MenuConfig::defaultConfig = false;
 	}
@@ -100,17 +89,8 @@ namespace GUI
 	{
 		if (Logo == NULL)
 		{
-			// Updater::CheckForUpdates();
 			Gui.LoadTextureFromMemory(Images::Logo, sizeof Images::Logo, &Logo, &LogoW, &LogoH);
-			Gui.LoadTextureFromMemory(Images::AimbotButton, sizeof Images::AimbotButton, &MenuButton1, &buttonW, &buttonH);
-			Gui.LoadTextureFromMemory(Images::VisualButton, sizeof Images::VisualButton, &MenuButton2, &buttonW, &buttonH);
-			Gui.LoadTextureFromMemory(Images::MiscButton, sizeof Images::MiscButton, &MenuButton3, &buttonW, &buttonH);
-			Gui.LoadTextureFromMemory(Images::ConfigButton, sizeof Images::ConfigButton, &MenuButton4, &buttonW, &buttonH);
 			Gui.LoadTextureFromMemory(Images::PreviewImg, sizeof Images::PreviewImg, &HitboxImage, &hitboxW, &hitboxH);
-			Gui.LoadTextureFromMemory(Images::AimbotButtonPressed, sizeof Images::AimbotButtonPressed, &MenuButton1Pressed, &buttonW, &buttonH);
-			Gui.LoadTextureFromMemory(Images::VisualButtonPressed, sizeof Images::VisualButtonPressed, &MenuButton2Pressed, &buttonW, &buttonH);
-			Gui.LoadTextureFromMemory(Images::MiscButtonPressed, sizeof Images::MiscButtonPressed, &MenuButton3Pressed, &buttonW, &buttonH);
-			Gui.LoadTextureFromMemory(Images::ConfigButtonPressed, sizeof Images::ConfigButtonPressed, &MenuButton4Pressed, &buttonW, &buttonH);
 
 			MenuConfig::MarkWinPos = ImVec2(ImGui::GetIO().DisplaySize.x - 300.0f, 100.f);
 			MenuConfig::RadarWinPos = ImVec2(25.f, 25.f);
@@ -201,110 +181,107 @@ namespace GUI
 	void DrawGui()
 	{
 		LoadImages();
-		ImTextureID ImageID;
-		ImVec2 LogoSize, LogoPos;
 
-		ImageID = (void*)Logo;
-		LogoSize = ImVec2(LogoW, LogoH);
-		LogoPos = MenuConfig::WCS.LogoPos;
-
-		ImColor BorderColor = ImColor(ImGui::GetStyleColorVec4(ImGuiCol_Border));
-
-		char TempText[256];
 		ImGuiWindowFlags Flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar;
 		ImGui::SetNextWindowPos({ (ImGui::GetIO().DisplaySize.x - MenuConfig::WCS.MainWinSize.x) / 2.0f, (ImGui::GetIO().DisplaySize.y - MenuConfig::WCS.MainWinSize.y) / 2.0f }, ImGuiCond_Once);
 		ImGui::SetNextWindowSize(MenuConfig::WCS.MainWinSize);
 		ImGui::Begin("DragonBurn", nullptr, Flags);
 		{
-			ImGui::SetCursorPos(LogoPos);
-			ImGui::Image(ImageID, LogoSize);
-			if (ImGui::IsItemClicked()) {
-				Gui.OpenWebpage("https://github.com/ByteCorum/DragonBurn");
-			}
-			ImGui::GetWindowDrawList()->AddRect(
-				ImVec2(MenuConfig::WCS.LogoPos.x + ImGui::GetWindowPos().x, MenuConfig::WCS.LogoPos.y + ImGui::GetWindowPos().y),
-				ImVec2(MenuConfig::WCS.LogoPos.x + LogoW + ImGui::GetWindowPos().x, MenuConfig::WCS.LogoPos.y + LogoH + ImGui::GetWindowPos().y),
-				BorderColor, 0.f, ImDrawFlags_RoundCornersNone | ImDrawCornerFlags_Top | ImDrawCornerFlags_Bot, 1.f, true);
+			ImDrawList* draw = ImGui::GetWindowDrawList();
+			ImVec2 winPos = ImGui::GetWindowPos();
+			ImVec2 winSize = MenuConfig::WCS.MainWinSize;
 
-			ImGui::SetCursorPos(MenuConfig::WCS.Button1Pos);
-			if (!Button1Pressed)
-				ImGui::Image((void*)MenuButton1, ImVec2(buttonW, buttonH));
-			if (Button1Pressed)
-				ImGui::Image((void*)MenuButton1Pressed, ImVec2(buttonW, buttonH));
-			if (ImGui::IsItemClicked()) 
+			// ====== Sidebar Background ======
+			float sidebarW = 55.f;
+			ImVec4 accentCol = ImGui::GetStyleColorVec4(ImGuiCol_CheckMark);
+			ImVec4 accentDim = ImVec4(accentCol.x, accentCol.y, accentCol.z, 0.15f);
+			ImVec4 textActive = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+			ImVec4 textInactive = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+			ImVec4 sidebarBg = ImGui::GetStyleColorVec4(ImGuiCol_TitleBg);
+			ImVec4 borderLine = ImGui::GetStyleColorVec4(ImGuiCol_Border);
+
+			draw->AddRectFilled(
+				winPos,
+				ImVec2(winPos.x + sidebarW, winPos.y + winSize.y),
+				ImColor(sidebarBg), 10.f, ImDrawFlags_RoundCornersLeft);
+
+			// Subtle accent line on right edge of sidebar
+			draw->AddLine(
+				ImVec2(winPos.x + sidebarW - 1, winPos.y + 8),
+				ImVec2(winPos.x + sidebarW - 1, winPos.y + winSize.y - 8),
+				ImColor(borderLine), 1.f);
+
+			// ====== Sidebar Tab Buttons ======
+			const char* tabLabels[] = { "A", "V", "M", "C" };     // Short labels
+			const char* tabTips[] = { "Aimbot", "Visual", "Misc", "Config" }; // Tooltips
+			float tabH = 40.f;
+			float tabStartY = 15.f;
+			float tabGap = 6.f;
+
+			for (int i = 0; i < 4; i++)
 			{
-				MenuConfig::WCS.MenuPage = 0;
-				Button1Pressed = true;
-				Button2Pressed = false;
-				Button3Pressed = false;
-				Button4Pressed = false;
+				float tabY = tabStartY + i * (tabH + tabGap);
+				ImVec2 tabMin = ImVec2(winPos.x + 4, winPos.y + tabY);
+				ImVec2 tabMax = ImVec2(winPos.x + sidebarW - 4, winPos.y + tabY + tabH);
+
+				bool hovered = ImGui::IsMouseHoveringRect(tabMin, tabMax);
+				bool isSelected = (selectedTab == i);
+
+				// Background highlight for selected/hovered
+				if (isSelected)
+				{
+					draw->AddRectFilled(tabMin, tabMax, ImColor(accentDim), 6.f);
+					// Accent indicator bar on left
+					draw->AddRectFilled(
+						ImVec2(winPos.x + 2, winPos.y + tabY + 8),
+						ImVec2(winPos.x + 5, winPos.y + tabY + tabH - 8),
+						ImColor(accentCol), 3.f);
+				}
+				else if (hovered)
+				{
+					draw->AddRectFilled(tabMin, tabMax, ImColor(ImGui::GetStyleColorVec4(ImGuiCol_ChildBg)), 6.f);
+				}
+
+				// Tab label (centered)
+				ImVec2 textSize = ImGui::CalcTextSize(tabLabels[i]);
+				ImVec2 textPos = ImVec2(
+					tabMin.x + (tabMax.x - tabMin.x - textSize.x) * 0.5f,
+					tabMin.y + (tabH - textSize.y) * 0.5f
+				);
+				draw->AddText(textPos, ImColor(isSelected ? textActive : (hovered ? textActive : textInactive)), tabLabels[i]);
+
+				// Click detection
+				if (hovered && ImGui::IsMouseClicked(0))
+				{
+					selectedTab = i;
+					MenuConfig::WCS.MenuPage = i;
+				}
+
+				// Tooltip
+				if (hovered)
+				{
+					ImGui::SetTooltip(tabTips[i]);
+				}
 			}
-			ImGui::GetWindowDrawList()->AddRect(
-				ImVec2(MenuConfig::WCS.Button1Pos.x + ImGui::GetWindowPos().x, MenuConfig::WCS.Button1Pos.y + ImGui::GetWindowPos().y),
-				ImVec2(MenuConfig::WCS.Button1Pos.x + buttonW + ImGui::GetWindowPos().x, MenuConfig::WCS.Button1Pos.y + buttonH + ImGui::GetWindowPos().y),
-				BorderColor, 0.f, ImDrawFlags_RoundCornersNone | ImDrawCornerFlags_Top | ImDrawCornerFlags_Bot, 1.f, true);
 
-			ImGui::SetCursorPos(MenuConfig::WCS.Button2Pos);
-			if (!Button2Pressed)
-				ImGui::Image((void*)MenuButton2, ImVec2(buttonW, buttonH));
-			if (Button2Pressed)
-				ImGui::Image((void*)MenuButton2Pressed, ImVec2(buttonW, buttonH));
-			if (ImGui::IsItemClicked())
+			// ====== Version text at bottom of sidebar ======
+			const char* ver = "v3.7";
+			ImVec2 verSize = ImGui::CalcTextSize(ver);
+			draw->AddText(
+				ImVec2(winPos.x + (sidebarW - verSize.x) * 0.5f, winPos.y + winSize.y - 25),
+				ImColor(0.30f, 0.33f, 0.40f, 1.00f), ver);
+
+			// ====== Content Area ======
+			ImGui::SetCursorPos(ImVec2(sidebarW + 5, 0.f));
+			ImGui::BeginChild("Page", ImVec2(winSize.x - sidebarW - 5, winSize.y), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
 			{
-				MenuConfig::WCS.MenuPage = 1;
-				Button1Pressed = false;
-				Button2Pressed = true;
-				Button3Pressed = false;
-				Button4Pressed = false;
-			}
-			ImGui::GetWindowDrawList()->AddRect(
-				ImVec2(MenuConfig::WCS.Button2Pos.x + ImGui::GetWindowPos().x, MenuConfig::WCS.Button2Pos.y + ImGui::GetWindowPos().y),
-				ImVec2(MenuConfig::WCS.Button2Pos.x + buttonW + ImGui::GetWindowPos().x, MenuConfig::WCS.Button2Pos.y + buttonH + ImGui::GetWindowPos().y),
-				BorderColor, 0.f, ImDrawFlags_RoundCornersNone | ImDrawCornerFlags_Top | ImDrawCornerFlags_Bot, 1.f, true);
-
-			ImGui::SetCursorPos(MenuConfig::WCS.Button3Pos);
-			if (!Button3Pressed)
-				ImGui::Image((void*)MenuButton3, ImVec2(buttonW, buttonH));
-			if (Button3Pressed)
-				ImGui::Image((void*)MenuButton3Pressed, ImVec2(buttonW, buttonH));
-			if (ImGui::IsItemClicked())
-			{
-				MenuConfig::WCS.MenuPage = 2;
-				Button1Pressed = false;
-				Button2Pressed = false;
-				Button3Pressed = true;
-				Button4Pressed = false;
-			}
-			ImGui::GetWindowDrawList()->AddRect(
-				ImVec2(MenuConfig::WCS.Button3Pos.x + ImGui::GetWindowPos().x, MenuConfig::WCS.Button3Pos.y + ImGui::GetWindowPos().y),
-				ImVec2(MenuConfig::WCS.Button3Pos.x + buttonW + ImGui::GetWindowPos().x, MenuConfig::WCS.Button3Pos.y + buttonH + ImGui::GetWindowPos().y),
-				BorderColor, 0.f, ImDrawFlags_RoundCornersNone | ImDrawCornerFlags_Top | ImDrawCornerFlags_Bot, 1.f, true);
-
-			ImGui::SetCursorPos(MenuConfig::WCS.Button4Pos);
-			if (!Button4Pressed)
-				ImGui::Image((void*)MenuButton4, ImVec2(buttonW, buttonH));
-			if (Button4Pressed)
-				ImGui::Image((void*)MenuButton4Pressed, ImVec2(buttonW, buttonH));
-			if (ImGui::IsItemClicked())
-			{
-				MenuConfig::WCS.MenuPage = 3;
-				Button1Pressed = false;
-				Button2Pressed = false;
-				Button3Pressed = false;
-				Button4Pressed = true;
-			}
-			ImGui::GetWindowDrawList()->AddRect(
-				ImVec2(MenuConfig::WCS.Button4Pos.x + ImGui::GetWindowPos().x, MenuConfig::WCS.Button4Pos.y + ImGui::GetWindowPos().y),
-				ImVec2(MenuConfig::WCS.Button4Pos.x + buttonW + ImGui::GetWindowPos().x, MenuConfig::WCS.Button4Pos.y + buttonH + ImGui::GetWindowPos().y),
-				BorderColor, 0.f, ImDrawFlags_RoundCornersNone | ImDrawCornerFlags_Top | ImDrawCornerFlags_Bot, 1.f, true);
-
-			ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 5);
-
-			ImGui::SetCursorPos(MenuConfig::WCS.ChildPos);
-			
-			ImGui::BeginChild("Page", MenuConfig::WCS.ChildSize, false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-			{
-				ImGui::Text("   DragonBurn");
+				// Section header
+				const char* sectionNames[] = { "Aimbot", "Visual", "Misc", "Config" };
+				ImGui::SetCursorPosY(8.f);
+				ImGui::SetCursorPosX(15.f);
+				ImGui::PushStyleColor(ImGuiCol_Text, accentCol);
+				ImGui::Text(sectionNames[MenuConfig::WCS.MenuPage]);
+				ImGui::PopStyleColor();
 				ImGui::Separator();
 				if (MenuConfig::WCS.MenuPage == 1)
 				{
@@ -666,6 +643,24 @@ namespace GUI
 					PutSwitch(Text::Misc::TeamCheck.c_str(), 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::TeamCheck);
 					PutSwitch(Text::Misc::AntiRecord.c_str(), 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::BypassOBS);
 					ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 5.f);
+
+					// Theme Picker
+					ImGui::NewLine();
+					ImGui::GradientText("Appearance");
+					ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 5.f);
+					ImGui::TextDisabled("Theme");
+					ImGui::SameLine();
+					AlignRight(160.f);
+					ImGui::SetNextItemWidth(160.f);
+					static int lastTheme = MiscCFG::ThemeIndex;
+					if (ImGui::Combo("###ThemePicker", &MiscCFG::ThemeIndex, "Neon Blue\0Crimson Red\0Electric Purple\0Emerald Green\0Amber Orange\0"))
+					{
+						if (MiscCFG::ThemeIndex != lastTheme)
+						{
+							ImGui::DragonBurnApplyTheme(MiscCFG::ThemeIndex);
+							lastTheme = MiscCFG::ThemeIndex;
+						}
+					}
 
 					ImGui::NewLine();
 					if (ImGui::Button("Source Code", { 125.f, 25.f }))

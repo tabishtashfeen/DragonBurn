@@ -241,7 +241,7 @@ namespace MyConfigSaver
         ConfigData["Misc"]["TeamCheck"]=        MenuConfig::TeamCheck;
         ConfigData["Misc"]["AntiRecord"]=       MenuConfig::BypassOBS;
         ConfigData["Misc"]["MenuKey"] =         MenuConfig::HotKey;
-
+        ConfigData["Misc"]["ThemeIndex"] =      MiscCFG::ThemeIndex;
         ConfigData["MenuConfig"]["MarkWinPos"]["x"] = MenuConfig::MarkWinPos.x;
         ConfigData["MenuConfig"]["MarkWinPos"]["y"] = MenuConfig::MarkWinPos.y;
 
@@ -499,6 +499,7 @@ namespace MyConfigSaver
             MenuConfig::TeamCheck = ReadData(ConfigData["Misc"],{"TeamCheck"}, true);
             MenuConfig::BypassOBS = ReadData(ConfigData["Misc"],{"AntiRecord"}, false);
             MenuConfig::HotKey = ReadData(ConfigData["Misc"], { "MenuKey" }, VK_END);
+            MiscCFG::ThemeIndex = ReadData(ConfigData["Misc"], { "ThemeIndex" }, 0);
             Text::Misc::HotKey = KeyMgr::GetKeyName(MenuConfig::HotKey);
         }
 
